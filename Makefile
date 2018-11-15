@@ -25,8 +25,11 @@ dep_ensure:
 build:
 	goapp build .
 
+app.yaml:
+	erb -T - app.yaml.erb > ./app.yaml
+
 .PHONY: deploy rollback
-deploy:
+deploy: app.yaml
 	appcfg.py -A $(GAE_PROJECT) -V ${VERSION} update $(DEPLOY_PATH)
 rollback:
 	appcfg.py -A $(GAE_PROJECT) -V ${VERSION} rollback $(DEPLOY_PATH)
