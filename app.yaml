@@ -10,6 +10,8 @@ handlers:
 
 nobuild_files:
 - vendor/
+- .git/
 
 skip_files:
 - vendor/
+- .git/
