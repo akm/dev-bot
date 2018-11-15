@@ -69,11 +69,11 @@ func showPullRequestSummary(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	fmt.Fprintln(w, "Pull Request Reminder\n")
+	fmt.Fprintf(w, "Pull Request Reminder\n")
 	for user, urls := range sum {
-		fmt.Fprintln(w, "\n@%s\n", user)
+		fmt.Fprintf(w, "\n@%s\n", user)
 		for _, url := range urls {
-			fmt.Fprintln(w, "%s\n", url)
+			fmt.Fprintf(w, "%s\n", url)
 		}
 	}
 }
