@@ -3,6 +3,8 @@ BASEDIR = $(CURDIR)
 VERSION ?= $(shell cat ./VERSION)
 LOCAL_PORT ?= 8080
 
+DEPLOY_PATH=.
+
 .PHONY: setup
 setup:
 	@which dep || go get -u github.com/golang/dep/cmd/dep
