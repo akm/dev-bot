@@ -3,6 +3,7 @@ BASEDIR = $(CURDIR)
 VERSION ?= $(shell cat ./VERSION)
 LOCAL_PORT ?= 8080
 
+SERVICE_NAME=dev-bot
 DEPLOY_PATH=.
 
 .PHONY: setup
