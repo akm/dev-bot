@@ -5,10 +5,13 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/google/go-github/github"
 	"golang.org/x/oauth2"
 	"google.golang.org/appengine"
 	"google.golang.org/appengine/log"
+	"google.golang.org/appengine/urlfetch"
+
+	"github.com/google/go-github/github"
+	"github.com/nlopes/slack"
 )
 
 func main() {
@@ -68,10 +71,37 @@ func showPullRequestSummary(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// https://github.com/nlopes/slack
+	slack_api := slack.New(os.Getenv("SLACK_OAUTH_ACCESS_TOKEN"))
+	slack.OptionHTTPClient(urlfetch.Client(ctx))(slack_api)
+
+	// Don't forget adding scopes at `OAuth & Permissions` page.
+	// See https://api.slack.com/methods/users.list about scopes.
+	users, err := slack_api.GetUsers()
+	if err != nil {
+		log.Errorf(ctx, "Failed to slack_api.GetUsers because of %v", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	userNameToID := map[string]string{}
+	for _, user := range users {
+		log.Debugf(ctx, "user: %v\n", user)
+		userNameToID[user.Profile.DisplayName] = user.ID
+	}
+
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	fmt.Fprintf(w, "Pull Request Reminder\n")
 	for user, urls := range sum {
-		fmt.Fprintf(w, "\n@%s\n", user)
+		// https://api.slack.com/docs/message-formatting#linking_to_channels_and_users
+		userId := userNameToID[user]
+		var mention string
+		if userId == "" {
+			mention = fmt.Sprintf("@%s", user)
+		} else {
+			mention = fmt.Sprintf("<@%s>", userId)
+		}
+		fmt.Fprintf(w, "\n%s\n", mention)
 		for _, url := range urls {
 			fmt.Fprintf(w, "%s\n", url)
 		}
