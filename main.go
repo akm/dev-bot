@@ -73,13 +73,13 @@ func subscribeSlack(w http.ResponseWriter, r *http.Request) {
 		var msg string
 		var channel string
 		switch ev := innerEvent.Data.(type) {
-		case *slackevents.AppMentionEvent:
+		case *slackevents.AppMentionEvent: // Event Name: app_mention
 			if botInfo.ID == ev.User {
 				return
 			}
 			channel = ev.Channel
 			msg = fmt.Sprintf("<@%s> said to me %s", ev.User, ev.Text)
-		case *slackevents.MessageEvent:
+		case *slackevents.MessageEvent: // Event Name: message.channels
 			if botInfo.ID == ev.User {
 				return
 			}
