@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"regexp"
+	"strings"
 
 	"golang.org/x/oauth2"
 	"google.golang.org/appengine"
@@ -28,6 +30,8 @@ func main() {
 func sayHello(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintln(w, "Hello!")
 }
+
+var FavoritePattern = regexp.MustCompile(`酒|ビール|ワイン|パクチー|肉|飲み`)
 
 func subscribeSlack(w http.ResponseWriter, r *http.Request) {
 	ctx := appengine.NewContext(r)
@@ -83,8 +87,12 @@ func subscribeSlack(w http.ResponseWriter, r *http.Request) {
 			if botInfo.ID == ev.User {
 				return
 			}
+			favorites := FavoritePattern.FindAllString(ev.Text, -1)
+			if len(favorites) < 0 {
+				return
+			}
 			channel = ev.Channel
-			msg = fmt.Sprintf("<@%s> said %s", ev.User, ev.Text)
+			msg = fmt.Sprintf("<@%s> いま %s って言いました！？", ev.User, strings.Join(favorites, "と"))
 		default:
 			return
 		}
