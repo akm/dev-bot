@@ -132,7 +132,7 @@ func showPullRequestSummary(w http.ResponseWriter, r *http.Request) {
 		if pr.URL == nil {
 			continue
 		}
-		url := *pr.URL
+		url := *pr.HTMLURL
 		for _, user := range pr.RequestedReviewers {
 			if user.Login == nil {
 				continue
