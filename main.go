@@ -85,13 +85,31 @@ func subscribeSlack(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			channel = ev.Channel
-			msg = fmt.Sprintf("<@%s> said to me %s", ev.User, ev.Text)
+			if PullRequestPattern.MatchString(ev.Text) {
+				team := os.Getenv("TARGET_SLACK_TEAM")
+				// https://api.slack.com/slash-commands#app_command_handling
+				if team == eventsAPIEvent.TeamID {
+					sum, userNameToID, err := pullRequestSummary(ctx, r, team)
+					if err != nil {
+						msg = fmt.Sprintf("Failed to get the summary of your pull requests because of %v", err)
+					} else {
+						b := bytes.NewBuffer([]byte{})
+						writePullRequestSummary(b, sum, userNameToID)
+						msg = b.String()
+					}
+
+				} else {
+					msg = "Can't tell you the detail because you are in another team"
+				}
+			} else {
+				msg = fmt.Sprintf("<@%s> Sorry, I can't understand your message: %s", ev.User, ev.Text)
+			}
 		case *slackevents.MessageEvent: // Event Name: message.channels
 			if botInfo.ID == ev.User {
 				return
 			}
 			favorites := FavoritePattern.FindAllString(ev.Text, -1)
-			if len(favorites) < 0 {
+			if len(favorites) < 1 {
 				return
 			}
 			channel = ev.Channel
