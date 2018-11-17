@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -32,6 +33,7 @@ func sayHello(w http.ResponseWriter, r *http.Request) {
 }
 
 var FavoritePattern = regexp.MustCompile(`酒|ビール|ワイン|パクチー|肉|飲み`)
+var PullRequestPattern = regexp.MustCompile(`/pr|pull request`)
 
 func subscribeSlack(w http.ResponseWriter, r *http.Request) {
 	ctx := appengine.NewContext(r)
@@ -106,32 +108,21 @@ func subscribeSlack(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-
-func showPullRequestSummary(w http.ResponseWriter, r *http.Request) {
-	ctx := appengine.NewContext(r)
+func pullRequestSummary(ctx context.Context, r *http.Request, team string) (map[string][]string, map[string]string, error) {
 	ts := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: os.Getenv("GITHUB_AUTH_TOKEN")},
 	)
 	tc := oauth2.NewClient(ctx, ts)
 	client := github.NewClient(tc)
 
-	team := os.Getenv("TARGET_SLACK_TEAM")
 	owner := os.Getenv("TARGET_GITHUB_ORG")
 	repo := os.Getenv("TARGET_GITHUB_REPO")
 
-	// https://api.slack.com/slash-commands#app_command_handling
-	if team != r.PostFormValue("team_id") {
-		err := fmt.Errorf("Invalid team ID")
-		log.Errorf(ctx, "Can't tell you the detail because of %v", err)
-		http.Error(w, err.Error(), http.StatusForbidden)
-		return
-	}
 
 	prs, _, err := client.PullRequests.List(ctx, owner, repo, nil)
 	if err != nil {
 		log.Errorf(ctx, "Failed to client.PullRequests.List because of %v", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+		return nil, nil, err
 	}
 
 	// {"UserLogin": "PR URL"}
@@ -162,14 +153,35 @@ func showPullRequestSummary(w http.ResponseWriter, r *http.Request) {
 	users, err := slack_api.GetUsers()
 	if err != nil {
 		log.Errorf(ctx, "Failed to slack_api.GetUsers because of %v", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+		return nil, nil, err
 	}
 
 	userNameToID := map[string]string{}
 	for _, user := range users {
 		log.Debugf(ctx, "user: %v\n", user)
 		userNameToID[user.Profile.DisplayName] = user.ID
+	}
+
+	return sum, userNameToID, nil
+}
+
+
+func showPullRequestSummary(w http.ResponseWriter, r *http.Request) {
+	ctx := appengine.NewContext(r)
+
+	team := os.Getenv("TARGET_SLACK_TEAM")
+	// https://api.slack.com/slash-commands#app_command_handling
+	if team != r.PostFormValue("team_id") {
+		err := fmt.Errorf("Invalid team ID")
+		log.Errorf(ctx, "Can't tell you the detail because of %v", err)
+		http.Error(w, err.Error(), http.StatusForbidden)
+		return
+	}
+
+	sum, userNameToID, err := pullRequestSummary(ctx, r, team)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
