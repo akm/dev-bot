@@ -27,11 +27,11 @@ build:
 	goapp build .
 
 app.yaml:
-	erb -T - app.yaml.erb > ./app.yaml
+	erb -T - app.yaml.erb > ./app.yaml || rm app.yaml
 
 .PHONY: deploy rollback
 deploy: app.yaml
-	appcfg.py -A $(GAE_PROJECT) -V ${VERSION} update $(DEPLOY_PATH)
+	appcfg.py -A $(GAE_PROJECT) -V ${VERSION} update $(DEPLOY_PATH); rm app.yaml
 rollback:
 	appcfg.py -A $(GAE_PROJECT) -V ${VERSION} rollback $(DEPLOY_PATH)
 
