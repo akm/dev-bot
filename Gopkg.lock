@@ -34,10 +34,11 @@
   version = "v1.4.0"
 
 [[projects]]
-  digest = "1:95d38d218bf2290987c6b0e885a9f0f2d3d3239235acaddca01c3fe36e5e5566"
+  digest = "1:0d01bcdbda5760553e5ab803faa3d3a0dc6a3ef357eb179b8ac8501b358d49ce"
   name = "github.com/nlopes/slack"
   packages = [
     ".",
+    "slackevents",
     "slackutilsx",
   ]
   pruneopts = "UT"
@@ -100,6 +101,7 @@
   input-imports = [
     "github.com/google/go-github/github",
     "github.com/nlopes/slack",
+    "github.com/nlopes/slack/slackevents",
     "golang.org/x/oauth2",
     "google.golang.org/appengine",
     "google.golang.org/appengine/log",
