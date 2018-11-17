@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"regexp"
@@ -165,6 +166,24 @@ func pullRequestSummary(ctx context.Context, r *http.Request, team string) (map[
 	return sum, userNameToID, nil
 }
 
+func writePullRequestSummary(w io.Writer, sum map[string][]string, userNameToID map[string]string) {
+	fmt.Fprintf(w, "Pull Request Reminder\n")
+	for user, urls := range sum {
+		// https://api.slack.com/docs/message-formatting#linking_to_channels_and_users
+		userId := userNameToID[user]
+		var mention string
+		if userId == "" {
+			mention = fmt.Sprintf("@%s", user)
+		} else {
+			mention = fmt.Sprintf("<@%s>", userId)
+		}
+		fmt.Fprintf(w, "\n%s\n", mention)
+		for _, url := range urls {
+			fmt.Fprintf(w, "%s\n", url)
+		}
+	}
+}
+
 
 func showPullRequestSummary(w http.ResponseWriter, r *http.Request) {
 	ctx := appengine.NewContext(r)
@@ -185,19 +204,5 @@ func showPullRequestSummary(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	fmt.Fprintf(w, "Pull Request Reminder\n")
-	for user, urls := range sum {
-		// https://api.slack.com/docs/message-formatting#linking_to_channels_and_users
-		userId := userNameToID[user]
-		var mention string
-		if userId == "" {
-			mention = fmt.Sprintf("@%s", user)
-		} else {
-			mention = fmt.Sprintf("<@%s>", userId)
-		}
-		fmt.Fprintf(w, "\n%s\n", mention)
-		for _, url := range urls {
-			fmt.Fprintf(w, "%s\n", url)
-		}
-	}
+	writePullRequestSummary(w, sum, userNameToID)
 }
