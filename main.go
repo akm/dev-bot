@@ -92,7 +92,7 @@ func subscribeSlack(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			channel = ev.Channel
-			msg = fmt.Sprintf("<@%s> いま %s って言いました！？", ev.User, strings.Join(favorites, "と"))
+			msg = fmt.Sprintf("<@%s> Did you say %s !?", ev.User, strings.Join(favorites, " and "))
 		default:
 			return
 		}
