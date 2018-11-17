@@ -11,10 +11,12 @@ handlers:
 nobuild_files:
 - vendor/
 - .git/
+- dev-bot
 
 skip_files:
 - vendor/
 - .git/
+- dev-bot
 
 env_variables:
 <%-
@@ -24,6 +26,7 @@ envs = %w[
   TARGET_GITHUB_ORG
   TARGET_GITHUB_REPO
   SLACK_OAUTH_ACCESS_TOKEN
+  SLACK_VERIFICATION_TOKEN
 ]
 envs.each do |env_name| -%>
   <%= env_name %>: <%= ENV[env_name] or raise "$#{env_name} is required" %>
