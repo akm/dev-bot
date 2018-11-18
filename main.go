@@ -162,19 +162,9 @@ func pullRequestReminder(ctx context.Context, r *http.Request, team string) (*Pu
 
 	// https://github.com/nlopes/slack
 	slack_api := slackApi(ctx, os.Getenv("SLACK_OAUTH_ACCESS_TOKEN"))
-
-	// Don't forget adding scopes at `OAuth & Permissions` page.
-	// See https://api.slack.com/methods/users.list about scopes.
-	users, err := slack_api.GetUsers()
+	userNameToID, err := getUserNameToID(ctx, slack_api)
 	if err != nil {
-		log.Errorf(ctx, "Failed to slack_api.GetUsers because of %v", err)
 		return nil, err
-	}
-
-	userNameToID := map[string]string{}
-	for _, user := range users {
-		log.Debugf(ctx, "user: %v\n", user)
-		userNameToID[user.Profile.DisplayName] = user.ID
 	}
 
 	return &PullRequestReminder{
