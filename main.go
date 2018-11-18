@@ -131,33 +131,10 @@ func pullRequestReminder(ctx context.Context, r *http.Request, team string) (*Pu
 	tc := oauth2.NewClient(ctx, ts)
 	client := github.NewClient(tc)
 
-	owner := os.Getenv("TARGET_GITHUB_ORG")
-	repo := os.Getenv("TARGET_GITHUB_REPO")
-
-
-	prs, _, err := client.PullRequests.List(ctx, owner, repo, nil)
-	if err != nil {
-		log.Errorf(ctx, "Failed to client.PullRequests.List because of %v", err)
-		return nil, err
-	}
-
 	// {"UserLogin": "PR URL"}
-	sum := map[string][]string{}
-	for _, pr := range prs {
-		if pr.URL == nil {
-			continue
-		}
-		url := *pr.HTMLURL
-		for _, user := range pr.RequestedReviewers {
-			if user.Login == nil {
-				continue
-			}
-			login := *user.Login
-			if sum[login] == nil {
-				sum[login] = []string{}
-			}
-			sum[login] = append(sum[login], url)
-		}
+	sum, err := getUserToUrls(ctx, client, os.Getenv("TARGET_GITHUB_ORG"), os.Getenv("TARGET_GITHUB_REPO"))
+	if err != nil {
+		return nil, err
 	}
 
 	// https://github.com/nlopes/slack
