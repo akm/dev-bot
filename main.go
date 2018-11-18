@@ -54,13 +54,7 @@ func subscribeSlack(w http.ResponseWriter, r *http.Request) {
 	log.Debugf(ctx, "eventsAPIEvent.Type: %v\n", eventsAPIEvent.Type)
 
 	if eventsAPIEvent.Type == slackevents.URLVerification {
-		var r *slackevents.ChallengeResponse
-		err := json.Unmarshal([]byte(body), &r)
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-		}
-		w.Header().Set("Content-Type", "text")
-		w.Write([]byte(r.Challenge))
+		ReplyToVerification(w, body)
 	}
 	if eventsAPIEvent.Type == slackevents.CallbackEvent {
 		innerEvent := eventsAPIEvent.InnerEvent
