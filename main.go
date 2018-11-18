@@ -77,21 +77,7 @@ func subscribeSlack(w http.ResponseWriter, r *http.Request) {
 			}
 			channel = ev.Channel
 			if PullRequestPattern.MatchString(ev.Text) {
-				team := os.Getenv("TARGET_SLACK_TEAM")
-				// https://api.slack.com/slash-commands#app_command_handling
-				if team == eventsAPIEvent.TeamID {
-					reminder, err := pullRequestReminder(ctx, r, team)
-					if err != nil {
-						msg = fmt.Sprintf("Failed to get the reminder of your pull requests because of %v", err)
-					} else {
-						b := bytes.NewBuffer([]byte{})
-						reminder.write(b)
-						msg = b.String()
-					}
-
-				} else {
-					msg = "Can't tell you the detail because you are in another team"
-				}
+				msg = replyToPullRequestReminderMentioned(ctx, r, eventsAPIEvent, os.Getenv("TARGET_SLACK_TEAM"))
 			} else {
 				msg = fmt.Sprintf("<@%s> Sorry, I can't understand your message: %s", ev.User, ev.Text)
 			}
@@ -115,6 +101,22 @@ func subscribeSlack(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		log.Debugf(ctx, "Succeed to slack_api.PostMessage channedID: %v, timestap: %v\n", channelID, timestamp)
+	}
+}
+
+func replyToPullRequestReminderMentioned(ctx context.Context, r *http.Request, eventsAPIEvent slackevents.EventsAPIEvent, team string) string {
+	// https://api.slack.com/slash-commands#app_command_handling
+	if team == eventsAPIEvent.TeamID {
+		reminder, err := pullRequestReminder(ctx, r, team)
+		if err != nil {
+			return fmt.Sprintf("Failed to get the reminder of your pull requests because of %v", err)
+		} else {
+			b := bytes.NewBuffer([]byte{})
+			reminder.write(b)
+			return b.String()
+		}
+	} else {
+		return "Can't tell you the detail because you are in another team"
 	}
 }
 
