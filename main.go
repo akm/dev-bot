@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"os"
 	"regexp"
@@ -127,11 +126,6 @@ func subscribeSlack(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-type PullRequestSummary struct {
-	UserToUrls map[string][]string
-	UserNameToID map[string]string
-}
-
 func pullRequestSummary(ctx context.Context, r *http.Request, team string) (*PullRequestSummary, error) {
 	ts := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: os.Getenv("GITHUB_AUTH_TOKEN")},
@@ -191,25 +185,6 @@ func pullRequestSummary(ctx context.Context, r *http.Request, team string) (*Pul
 		UserNameToID: userNameToID,
 	}, nil
 }
-
-func (prs *PullRequestSummary) write(w io.Writer) {
-	fmt.Fprintf(w, "Pull Request Reminder\n")
-	for user, urls := range prs.UserToUrls {
-		// https://api.slack.com/docs/message-formatting#linking_to_channels_and_users
-		userId := prs.UserNameToID[user]
-		var mention string
-		if userId == "" {
-			mention = fmt.Sprintf("@%s", user)
-		} else {
-			mention = fmt.Sprintf("<@%s>", userId)
-		}
-		fmt.Fprintf(w, "\n%s\n", mention)
-		for _, url := range urls {
-			fmt.Fprintf(w, "%s\n", url)
-		}
-	}
-}
-
 
 func showPullRequestSummary(w http.ResponseWriter, r *http.Request) {
 	ctx := appengine.NewContext(r)
