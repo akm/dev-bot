@@ -86,12 +86,11 @@ func subscribeSlack(w http.ResponseWriter, r *http.Request) {
 			if botInfo.ID == ev.User {
 				return
 			}
-			favorites := FavoritePattern.FindAllString(ev.Text, -1)
-			if len(favorites) < 1 {
+			channel = ev.Channel
+			msg = reactToFavorites(ev)
+			if msg == "" {
 				return
 			}
-			channel = ev.Channel
-			msg = fmt.Sprintf("<@%s> Did you say %s !?", ev.User, strings.Join(favorites, " and "))
 		default:
 			return
 		}
@@ -103,6 +102,14 @@ func subscribeSlack(w http.ResponseWriter, r *http.Request) {
 		}
 		log.Debugf(ctx, "Succeed to slack_api.PostMessage channedID: %v, timestap: %v\n", channelID, timestamp)
 	}
+}
+
+func reactToFavorites(ev *slackevents.MessageEvent) string {
+	favorites := FavoritePattern.FindAllString(ev.Text, -1)
+	if len(favorites) < 1 {
+		return ""
+	}
+	return fmt.Sprintf("<@%s> Did you say %s !?", ev.User, strings.Join(favorites, " and "))
 }
 
 func replyToPullRequestReminderMentioned(ctx context.Context, r *http.Request, eventsAPIEvent slackevents.EventsAPIEvent, team string) string {
