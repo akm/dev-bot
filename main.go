@@ -58,7 +58,13 @@ func subscribeSlack(w http.ResponseWriter, r *http.Request) {
 		ReplyToVerification(w, body)
 	case  slackevents.CallbackEvent:
 		channel := ChannelFromInnerEvent(eventsAPIEvent.InnerEvent)
-		msg := replyToCallbackEvent(ctx, r, eventsAPIEvent, slack_api)
+		var msg string
+		botInfo, err := slack_api.GetBotInfo("")
+		if err != nil {
+			msg = fmt.Sprintf("Failed to slack_api.GetBotInfo because of %v\n", err)
+		} else {
+			msg = replyToCallbackEvent(ctx, r, eventsAPIEvent, botInfo.ID)
+		}
 		if msg == "" {
 			return
 		}
@@ -72,20 +78,15 @@ func subscribeSlack(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func replyToCallbackEvent(ctx context.Context, r *http.Request, eventsAPIEvent slackevents.EventsAPIEvent, slack_api *slack.Client) string {
+func replyToCallbackEvent(ctx context.Context, r *http.Request, eventsAPIEvent slackevents.EventsAPIEvent, botID string) string {
 	innerEvent := eventsAPIEvent.InnerEvent
 
 	log.Debugf(ctx, "innerEvent: [%T] %v\n", innerEvent, innerEvent)
 	log.Debugf(ctx, "innerEvent.Data: [%T] %v\n", innerEvent.Data, innerEvent.Data)
 
-	botInfo, err := slack_api.GetBotInfo("")
-	if err != nil {
-		return fmt.Sprintf("Failed to slack_api.GetBotInfo because of %v\n", err)
-	}
-
 	switch ev := innerEvent.Data.(type) {
 	case *slackevents.AppMentionEvent: // Event Name: app_mention
-		if botInfo.ID == ev.User {
+		if botID == ev.User {
 			return ""
 		}
 		switch {
@@ -95,7 +96,7 @@ func replyToCallbackEvent(ctx context.Context, r *http.Request, eventsAPIEvent s
 			return fmt.Sprintf("<@%s> Sorry, I can't understand your message: %s", ev.User, ev.Text)
 		}
 	case *slackevents.MessageEvent: // Event Name: message.channels
-		if botInfo.ID == ev.User {
+		if botID == ev.User {
 			return ""
 		}
 		return reactToFavorites(ev)
