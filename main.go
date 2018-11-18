@@ -57,38 +57,8 @@ func subscribeSlack(w http.ResponseWriter, r *http.Request) {
 	case slackevents.URLVerification:
 		ReplyToVerification(w, body)
 	case  slackevents.CallbackEvent:
-		innerEvent := eventsAPIEvent.InnerEvent
-
-		log.Debugf(ctx, "innerEvent: [%T] %v\n", innerEvent, innerEvent)
-		log.Debugf(ctx, "innerEvent.Data: [%T] %v\n", innerEvent.Data, innerEvent.Data)
-
-		botInfo, err := slack_api.GetBotInfo("")
-		if err != nil {
-			log.Errorf(ctx, "Failed to slack_api.GetBotInfo because of %v\n", err)
-			return
-		}
-
-		var msg string
-		channel := ChannelFromInnerEvent(innerEvent)
-		switch ev := innerEvent.Data.(type) {
-		case *slackevents.AppMentionEvent: // Event Name: app_mention
-			if botInfo.ID == ev.User {
-				return
-			}
-			switch {
-			case PullRequestPattern.MatchString(ev.Text):
-				msg = replyToPullRequestReminderMentioned(ctx, r, eventsAPIEvent, os.Getenv("TARGET_SLACK_TEAM"))
-			default:
-				msg = fmt.Sprintf("<@%s> Sorry, I can't understand your message: %s", ev.User, ev.Text)
-			}
-		case *slackevents.MessageEvent: // Event Name: message.channels
-			if botInfo.ID == ev.User {
-				return
-			}
-			msg = reactToFavorites(ev)
-		default:
-			return
-		}
+		channel := ChannelFromInnerEvent(eventsAPIEvent.InnerEvent)
+		msg := replyToCallbackEvent(ctx, r, eventsAPIEvent, slack_api)
 		if msg == "" {
 			return
 		}
@@ -101,6 +71,39 @@ func subscribeSlack(w http.ResponseWriter, r *http.Request) {
 		log.Debugf(ctx, "Succeed to slack_api.PostMessage channedID: %v, timestap: %v\n", channelID, timestamp)
 	}
 }
+
+func replyToCallbackEvent(ctx context.Context, r *http.Request, eventsAPIEvent slackevents.EventsAPIEvent, slack_api *slack.Client) string {
+	innerEvent := eventsAPIEvent.InnerEvent
+
+	log.Debugf(ctx, "innerEvent: [%T] %v\n", innerEvent, innerEvent)
+	log.Debugf(ctx, "innerEvent.Data: [%T] %v\n", innerEvent.Data, innerEvent.Data)
+
+	botInfo, err := slack_api.GetBotInfo("")
+	if err != nil {
+		return fmt.Sprintf("Failed to slack_api.GetBotInfo because of %v\n", err)
+	}
+
+	switch ev := innerEvent.Data.(type) {
+	case *slackevents.AppMentionEvent: // Event Name: app_mention
+		if botInfo.ID == ev.User {
+			return ""
+		}
+		switch {
+		case PullRequestPattern.MatchString(ev.Text):
+			return replyToPullRequestReminderMentioned(ctx, r, eventsAPIEvent, os.Getenv("TARGET_SLACK_TEAM"))
+		default:
+			return fmt.Sprintf("<@%s> Sorry, I can't understand your message: %s", ev.User, ev.Text)
+		}
+	case *slackevents.MessageEvent: // Event Name: message.channels
+		if botInfo.ID == ev.User {
+			return ""
+		}
+		return reactToFavorites(ev)
+	default:
+		return ""
+	}
+}
+
 
 func reactToFavorites(ev *slackevents.MessageEvent) string {
 	favorites := FavoritePattern.FindAllString(ev.Text, -1)
