@@ -5,12 +5,12 @@ import (
 	"io"
 )
 
-type PullRequestSummary struct {
+type PullRequestReminder struct {
 	UserToUrls map[string][]string
 	UserNameToID map[string]string
 }
 
-func (prs *PullRequestSummary) write(w io.Writer) {
+func (prs *PullRequestReminder) write(w io.Writer) {
 	fmt.Fprintf(w, "Pull Request Reminder\n")
 	for user, urls := range prs.UserToUrls {
 		// https://api.slack.com/docs/message-formatting#linking_to_channels_and_users

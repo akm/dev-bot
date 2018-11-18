@@ -23,7 +23,7 @@ import (
 func main() {
 	http.HandleFunc("/hello", sayHello)
 	http.HandleFunc("/slack/subscribe", subscribeSlack)
-	http.HandleFunc("/github/pull_requests", showPullRequestSummary)
+	http.HandleFunc("/github/pull_requests", showPullRequestReminder)
 
 	appengine.Main()
 }
@@ -88,12 +88,12 @@ func subscribeSlack(w http.ResponseWriter, r *http.Request) {
 				team := os.Getenv("TARGET_SLACK_TEAM")
 				// https://api.slack.com/slash-commands#app_command_handling
 				if team == eventsAPIEvent.TeamID {
-					summary, err := pullRequestSummary(ctx, r, team)
+					reminder, err := pullRequestReminder(ctx, r, team)
 					if err != nil {
-						msg = fmt.Sprintf("Failed to get the summary of your pull requests because of %v", err)
+						msg = fmt.Sprintf("Failed to get the reminder of your pull requests because of %v", err)
 					} else {
 						b := bytes.NewBuffer([]byte{})
-						summary.write(b)
+						reminder.write(b)
 						msg = b.String()
 					}
 
@@ -126,7 +126,7 @@ func subscribeSlack(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func pullRequestSummary(ctx context.Context, r *http.Request, team string) (*PullRequestSummary, error) {
+func pullRequestReminder(ctx context.Context, r *http.Request, team string) (*PullRequestReminder, error) {
 	ts := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: os.Getenv("GITHUB_AUTH_TOKEN")},
 	)
@@ -180,13 +180,13 @@ func pullRequestSummary(ctx context.Context, r *http.Request, team string) (*Pul
 		userNameToID[user.Profile.DisplayName] = user.ID
 	}
 
-	return &PullRequestSummary{
+	return &PullRequestReminder{
 		UserToUrls: sum,
 		UserNameToID: userNameToID,
 	}, nil
 }
 
-func showPullRequestSummary(w http.ResponseWriter, r *http.Request) {
+func showPullRequestReminder(w http.ResponseWriter, r *http.Request) {
 	ctx := appengine.NewContext(r)
 
 	team := os.Getenv("TARGET_SLACK_TEAM")
@@ -198,12 +198,12 @@ func showPullRequestSummary(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	summary, err := pullRequestSummary(ctx, r, team)
+	reminder, err := pullRequestReminder(ctx, r, team)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	summary.write(w)
+	reminder.write(w)
 }
