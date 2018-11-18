@@ -13,7 +13,6 @@ import (
 	"golang.org/x/oauth2"
 	"google.golang.org/appengine"
 	"google.golang.org/appengine/log"
-	"google.golang.org/appengine/urlfetch"
 
 	"github.com/google/go-github/github"
 	"github.com/nlopes/slack"
@@ -38,8 +37,7 @@ var PullRequestPattern = regexp.MustCompile(`/pr|pull request`)
 func subscribeSlack(w http.ResponseWriter, r *http.Request) {
 	ctx := appengine.NewContext(r)
 
-	slack_api := slack.New(os.Getenv("SLACK_OAUTH_ACCESS_TOKEN"))
-	slack.OptionHTTPClient(urlfetch.Client(ctx))(slack_api)
+	slack_api := slackApi(ctx, os.Getenv("SLACK_OAUTH_ACCESS_TOKEN"))
 
 	// https://api.slack.com/events-api#subscriptions
 	// https://github.com/nlopes/slack
@@ -163,8 +161,7 @@ func pullRequestReminder(ctx context.Context, r *http.Request, team string) (*Pu
 	}
 
 	// https://github.com/nlopes/slack
-	slack_api := slack.New(os.Getenv("SLACK_OAUTH_ACCESS_TOKEN"))
-	slack.OptionHTTPClient(urlfetch.Client(ctx))(slack_api)
+	slack_api := slackApi(ctx, os.Getenv("SLACK_OAUTH_ACCESS_TOKEN"))
 
 	// Don't forget adding scopes at `OAuth & Permissions` page.
 	// See https://api.slack.com/methods/users.list about scopes.
