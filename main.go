@@ -53,10 +53,10 @@ func subscribeSlack(w http.ResponseWriter, r *http.Request) {
 	log.Debugf(ctx, "eventsAPIEvent: %v\n", eventsAPIEvent)
 	log.Debugf(ctx, "eventsAPIEvent.Type: %v\n", eventsAPIEvent.Type)
 
-	if eventsAPIEvent.Type == slackevents.URLVerification {
+	switch eventsAPIEvent.Type {
+	case slackevents.URLVerification:
 		ReplyToVerification(w, body)
-	}
-	if eventsAPIEvent.Type == slackevents.CallbackEvent {
+	case  slackevents.CallbackEvent:
 		innerEvent := eventsAPIEvent.InnerEvent
 
 		log.Debugf(ctx, "innerEvent: [%T] %v\n", innerEvent, innerEvent)
