@@ -88,10 +88,10 @@ func subscribeSlack(w http.ResponseWriter, r *http.Request) {
 			}
 			channel = ev.Channel
 			msg = reactToFavorites(ev)
-			if msg == "" {
-				return
-			}
 		default:
+			return
+		}
+		if msg == "" {
 			return
 		}
 		postParams := slack.PostMessageParameters{}
