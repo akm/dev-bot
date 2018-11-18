@@ -150,7 +150,7 @@ func pullRequestReminder(ctx context.Context, r *http.Request, team string) (*PR
 	}
 
 	return &PRReviewReminder{
-		UserToUrls: sum,
+		UserToReviewUrls: sum,
 		UserNameToID: userNameToID,
 	}, nil
 }

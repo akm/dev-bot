@@ -6,13 +6,13 @@ import (
 )
 
 type PRReviewReminder struct {
-	UserToUrls map[string][]string
+	UserToReviewUrls map[string][]string
 	UserNameToID map[string]string
 }
 
 func (prs *PRReviewReminder) write(w io.Writer) {
 	fmt.Fprintf(w, "Pull Request Reminder\n")
-	for user, urls := range prs.UserToUrls {
+	for user, urls := range prs.UserToReviewUrls {
 		// https://api.slack.com/docs/message-formatting#linking_to_channels_and_users
 		userId := prs.UserNameToID[user]
 		var mention string
