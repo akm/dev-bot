@@ -69,13 +69,12 @@ func subscribeSlack(w http.ResponseWriter, r *http.Request) {
 		}
 
 		var msg string
-		var channel string
+		channel := ChannelFromInnerEvent(innerEvent)
 		switch ev := innerEvent.Data.(type) {
 		case *slackevents.AppMentionEvent: // Event Name: app_mention
 			if botInfo.ID == ev.User {
 				return
 			}
-			channel = ev.Channel
 			switch {
 			case PullRequestPattern.MatchString(ev.Text):
 				msg = replyToPullRequestReminderMentioned(ctx, r, eventsAPIEvent, os.Getenv("TARGET_SLACK_TEAM"))
@@ -86,7 +85,6 @@ func subscribeSlack(w http.ResponseWriter, r *http.Request) {
 			if botInfo.ID == ev.User {
 				return
 			}
-			channel = ev.Channel
 			msg = reactToFavorites(ev)
 		default:
 			return

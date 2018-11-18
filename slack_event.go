@@ -16,3 +16,14 @@ func ReplyToVerification(w http.ResponseWriter, reqBody string) {
 	w.Header().Set("Content-Type", "text")
 	w.Write([]byte(r.Challenge))
 }
+
+func ChannelFromInnerEvent(innerEvent slackevents.EventsAPIInnerEvent) string {
+	switch ev := innerEvent.Data.(type) {
+	case *slackevents.AppMentionEvent: // Event Name: app_mention
+		return ev.Channel
+	case *slackevents.MessageEvent: // Event Name: message.channels
+		return ev.Channel
+	default:
+		return ""
+	}
+}
