@@ -89,12 +89,12 @@ func subscribeSlack(w http.ResponseWriter, r *http.Request) {
 				team := os.Getenv("TARGET_SLACK_TEAM")
 				// https://api.slack.com/slash-commands#app_command_handling
 				if team == eventsAPIEvent.TeamID {
-					sum, userNameToID, err := pullRequestSummary(ctx, r, team)
+					summary, err := pullRequestSummary(ctx, r, team)
 					if err != nil {
 						msg = fmt.Sprintf("Failed to get the summary of your pull requests because of %v", err)
 					} else {
 						b := bytes.NewBuffer([]byte{})
-						writePullRequestSummary(b, sum, userNameToID)
+						summary.write(b)
 						msg = b.String()
 					}
 
@@ -127,7 +127,12 @@ func subscribeSlack(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func pullRequestSummary(ctx context.Context, r *http.Request, team string) (map[string][]string, map[string]string, error) {
+type PullRequestSummary struct {
+	UserToUrls map[string][]string
+	UserNameToID map[string]string
+}
+
+func pullRequestSummary(ctx context.Context, r *http.Request, team string) (*PullRequestSummary, error) {
 	ts := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: os.Getenv("GITHUB_AUTH_TOKEN")},
 	)
@@ -141,7 +146,7 @@ func pullRequestSummary(ctx context.Context, r *http.Request, team string) (map[
 	prs, _, err := client.PullRequests.List(ctx, owner, repo, nil)
 	if err != nil {
 		log.Errorf(ctx, "Failed to client.PullRequests.List because of %v", err)
-		return nil, nil, err
+		return nil, err
 	}
 
 	// {"UserLogin": "PR URL"}
@@ -172,7 +177,7 @@ func pullRequestSummary(ctx context.Context, r *http.Request, team string) (map[
 	users, err := slack_api.GetUsers()
 	if err != nil {
 		log.Errorf(ctx, "Failed to slack_api.GetUsers because of %v", err)
-		return nil, nil, err
+		return nil, err
 	}
 
 	userNameToID := map[string]string{}
@@ -181,14 +186,17 @@ func pullRequestSummary(ctx context.Context, r *http.Request, team string) (map[
 		userNameToID[user.Profile.DisplayName] = user.ID
 	}
 
-	return sum, userNameToID, nil
+	return &PullRequestSummary{
+		UserToUrls: sum,
+		UserNameToID: userNameToID,
+	}, nil
 }
 
-func writePullRequestSummary(w io.Writer, sum map[string][]string, userNameToID map[string]string) {
+func (prs *PullRequestSummary) write(w io.Writer) {
 	fmt.Fprintf(w, "Pull Request Reminder\n")
-	for user, urls := range sum {
+	for user, urls := range prs.UserToUrls {
 		// https://api.slack.com/docs/message-formatting#linking_to_channels_and_users
-		userId := userNameToID[user]
+		userId := prs.UserNameToID[user]
 		var mention string
 		if userId == "" {
 			mention = fmt.Sprintf("@%s", user)
@@ -215,12 +223,12 @@ func showPullRequestSummary(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sum, userNameToID, err := pullRequestSummary(ctx, r, team)
+	summary, err := pullRequestSummary(ctx, r, team)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	writePullRequestSummary(w, sum, userNameToID)
+	summary.write(w)
 }
