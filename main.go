@@ -137,7 +137,7 @@ func pullRequestReminder(ctx context.Context, r *http.Request, team string) (*Pu
 	client := github.NewClient(tc)
 
 	// {"UserLogin": "PR URL"}
-	sum, err := getUserToUrls(ctx, client, os.Getenv("TARGET_GITHUB_ORG"), os.Getenv("TARGET_GITHUB_REPO"))
+	sum, err := getUserToReviewUrls(ctx, client, os.Getenv("TARGET_GITHUB_ORG"), os.Getenv("TARGET_GITHUB_REPO"))
 	if err != nil {
 		return nil, err
 	}
