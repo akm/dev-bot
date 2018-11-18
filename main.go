@@ -76,9 +76,10 @@ func subscribeSlack(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			channel = ev.Channel
-			if PullRequestPattern.MatchString(ev.Text) {
+			switch {
+			case PullRequestPattern.MatchString(ev.Text):
 				msg = replyToPullRequestReminderMentioned(ctx, r, eventsAPIEvent, os.Getenv("TARGET_SLACK_TEAM"))
-			} else {
+			default:
 				msg = fmt.Sprintf("<@%s> Sorry, I can't understand your message: %s", ev.User, ev.Text)
 			}
 		case *slackevents.MessageEvent: // Event Name: message.channels
