@@ -65,10 +65,10 @@ func subscribeSlack(w http.ResponseWriter, r *http.Request) {
 		postParams := slack.PostMessageParameters{}
 		channelID, timestamp, err := slack_api.PostMessage(channel, msg, postParams)
 		if err != nil {
-			log.Errorf(ctx, "Failed to slack_api.PostMessage because of %v\n", err)
+			log.Errorf(ctx, "Failed to slack_api.PostMessage(%q, &q) because of %v\n", channel, msg, err)
 			return
 		}
-		log.Debugf(ctx, "Succeed to slack_api.PostMessage channedID: %v, timestap: %v\n", channelID, timestamp)
+		log.Debugf(ctx, "Succeed to slack_api.PostMessage(%q, &q) channedID: %v, timestap: %v\n", channel, msg, channelID, timestamp)
 	}
 }
 
