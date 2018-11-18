@@ -22,7 +22,7 @@ import (
 func main() {
 	http.HandleFunc("/hello", sayHello)
 	http.HandleFunc("/slack/subscribe", subscribeSlack)
-	http.HandleFunc("/github/pull_requests", showPullRequestReminder)
+	http.HandleFunc("/github/pull_requests", showPRReviewReminder)
 
 	appengine.Main()
 }
@@ -90,7 +90,7 @@ func replyToCallbackEvent(ctx context.Context, r *http.Request, eventsAPIEvent s
 		}
 		switch {
 		case PullRequestPattern.MatchString(ev.Text):
-			return replyToPullRequestReminderMentioned(ctx, r, eventsAPIEvent, os.Getenv("TARGET_SLACK_TEAM"))
+			return replyToPRReviewReminderMentioned(ctx, r, eventsAPIEvent, os.Getenv("TARGET_SLACK_TEAM"))
 		default:
 			return fmt.Sprintf("<@%s> Sorry, I can't understand your message: %s", ev.User, ev.Text)
 		}
@@ -113,7 +113,7 @@ func reactToFavorites(ev *slackevents.MessageEvent) string {
 	return fmt.Sprintf("<@%s> Did you say %s !?", ev.User, strings.Join(favorites, " and "))
 }
 
-func replyToPullRequestReminderMentioned(ctx context.Context, r *http.Request, eventsAPIEvent slackevents.EventsAPIEvent, team string) string {
+func replyToPRReviewReminderMentioned(ctx context.Context, r *http.Request, eventsAPIEvent slackevents.EventsAPIEvent, team string) string {
 	// https://api.slack.com/slash-commands#app_command_handling
 	if team == eventsAPIEvent.TeamID {
 		reminder, err := pullRequestReminder(ctx, r, team)
@@ -129,7 +129,7 @@ func replyToPullRequestReminderMentioned(ctx context.Context, r *http.Request, e
 	}
 }
 
-func pullRequestReminder(ctx context.Context, r *http.Request, team string) (*PullRequestReminder, error) {
+func pullRequestReminder(ctx context.Context, r *http.Request, team string) (*PRReviewReminder, error) {
 	ts := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: os.Getenv("GITHUB_AUTH_TOKEN")},
 	)
@@ -149,13 +149,13 @@ func pullRequestReminder(ctx context.Context, r *http.Request, team string) (*Pu
 		return nil, err
 	}
 
-	return &PullRequestReminder{
+	return &PRReviewReminder{
 		UserToUrls: sum,
 		UserNameToID: userNameToID,
 	}, nil
 }
 
-func showPullRequestReminder(w http.ResponseWriter, r *http.Request) {
+func showPRReviewReminder(w http.ResponseWriter, r *http.Request) {
 	ctx := appengine.NewContext(r)
 
 	team := os.Getenv("TARGET_SLACK_TEAM")
