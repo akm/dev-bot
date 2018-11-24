@@ -47,7 +47,12 @@ func getSlackUsers(ctx context.Context) (SlackUsers, error) {
 		r = append(r, &SlackUser{
 			ID: user.ID,
 			Names: []string{
+				user.Name,
+				user.RealName,
+				user.Profile.RealName,
+				user.Profile.RealNameNormalized,
 				user.Profile.DisplayName,
+				user.Profile.DisplayNameNormalized,
 			},
 		})
 	}
