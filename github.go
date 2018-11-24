@@ -9,7 +9,7 @@ import(
 )
 
 
-func getUserToUrls(ctx context.Context, client *github.Client, owner, repo string) (map[string][]string, error) {
+func getUserToReviewUrls(ctx context.Context, client *github.Client, owner, repo string) (map[string][]string, error) {
 	prs, _, err := client.PullRequests.List(ctx, owner, repo, nil)
 	if err != nil {
 		log.Errorf(ctx, "Failed to client.PullRequests.List because of %v", err)

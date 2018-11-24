@@ -22,7 +22,7 @@ import (
 func main() {
 	http.HandleFunc("/hello", sayHello)
 	http.HandleFunc("/slack/subscribe", subscribeSlack)
-	http.HandleFunc("/github/pull_requests", showPullRequestReminder)
+	http.HandleFunc("/github/pull_requests", showPRReviewReminder)
 
 	appengine.Main()
 }
@@ -58,7 +58,13 @@ func subscribeSlack(w http.ResponseWriter, r *http.Request) {
 		ReplyToVerification(w, body)
 	case  slackevents.CallbackEvent:
 		channel := ChannelFromInnerEvent(eventsAPIEvent.InnerEvent)
-		msg := replyToCallbackEvent(ctx, r, eventsAPIEvent, slack_api)
+		var msg string
+		botInfo, err := slack_api.GetBotInfo("")
+		if err != nil {
+			msg = fmt.Sprintf("Failed to slack_api.GetBotInfo because of %v\n", err)
+		} else {
+			msg = replyToCallbackEvent(ctx, r, eventsAPIEvent, botInfo.ID)
+		}
 		if msg == "" {
 			return
 		}
@@ -72,30 +78,25 @@ func subscribeSlack(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func replyToCallbackEvent(ctx context.Context, r *http.Request, eventsAPIEvent slackevents.EventsAPIEvent, slack_api *slack.Client) string {
+func replyToCallbackEvent(ctx context.Context, r *http.Request, eventsAPIEvent slackevents.EventsAPIEvent, botID string) string {
 	innerEvent := eventsAPIEvent.InnerEvent
 
 	log.Debugf(ctx, "innerEvent: [%T] %v\n", innerEvent, innerEvent)
 	log.Debugf(ctx, "innerEvent.Data: [%T] %v\n", innerEvent.Data, innerEvent.Data)
 
-	botInfo, err := slack_api.GetBotInfo("")
-	if err != nil {
-		return fmt.Sprintf("Failed to slack_api.GetBotInfo because of %v\n", err)
-	}
-
 	switch ev := innerEvent.Data.(type) {
 	case *slackevents.AppMentionEvent: // Event Name: app_mention
-		if botInfo.ID == ev.User {
+		if botID == ev.User {
 			return ""
 		}
 		switch {
 		case PullRequestPattern.MatchString(ev.Text):
-			return replyToPullRequestReminderMentioned(ctx, r, eventsAPIEvent, os.Getenv("TARGET_SLACK_TEAM"))
+			return replyToPRReviewReminderMentioned(ctx, r, eventsAPIEvent, os.Getenv("TARGET_SLACK_TEAM"))
 		default:
 			return fmt.Sprintf("<@%s> Sorry, I can't understand your message: %s", ev.User, ev.Text)
 		}
 	case *slackevents.MessageEvent: // Event Name: message.channels
-		if botInfo.ID == ev.User {
+		if botID == ev.User {
 			return ""
 		}
 		return reactToFavorites(ev)
@@ -113,7 +114,7 @@ func reactToFavorites(ev *slackevents.MessageEvent) string {
 	return fmt.Sprintf("<@%s> Did you say %s !?", ev.User, strings.Join(favorites, " and "))
 }
 
-func replyToPullRequestReminderMentioned(ctx context.Context, r *http.Request, eventsAPIEvent slackevents.EventsAPIEvent, team string) string {
+func replyToPRReviewReminderMentioned(ctx context.Context, r *http.Request, eventsAPIEvent slackevents.EventsAPIEvent, team string) string {
 	// https://api.slack.com/slash-commands#app_command_handling
 	if team == eventsAPIEvent.TeamID {
 		reminder, err := pullRequestReminder(ctx, r, team)
@@ -129,7 +130,7 @@ func replyToPullRequestReminderMentioned(ctx context.Context, r *http.Request, e
 	}
 }
 
-func pullRequestReminder(ctx context.Context, r *http.Request, team string) (*PullRequestReminder, error) {
+func pullRequestReminder(ctx context.Context, r *http.Request, team string) (*PRReviewReminder, error) {
 	ts := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: os.Getenv("GITHUB_AUTH_TOKEN")},
 	)
@@ -137,7 +138,7 @@ func pullRequestReminder(ctx context.Context, r *http.Request, team string) (*Pu
 	client := github.NewClient(tc)
 
 	// {"UserLogin": "PR URL"}
-	sum, err := getUserToUrls(ctx, client, os.Getenv("TARGET_GITHUB_ORG"), os.Getenv("TARGET_GITHUB_REPO"))
+	sum, err := getUserToReviewUrls(ctx, client, os.Getenv("TARGET_GITHUB_ORG"), os.Getenv("TARGET_GITHUB_REPO"))
 	if err != nil {
 		return nil, err
 	}
@@ -149,13 +150,13 @@ func pullRequestReminder(ctx context.Context, r *http.Request, team string) (*Pu
 		return nil, err
 	}
 
-	return &PullRequestReminder{
-		UserToUrls: sum,
+	return &PRReviewReminder{
+		UserToReviewUrls: sum,
 		UserNameToID: userNameToID,
 	}, nil
 }
 
-func showPullRequestReminder(w http.ResponseWriter, r *http.Request) {
+func showPRReviewReminder(w http.ResponseWriter, r *http.Request) {
 	ctx := appengine.NewContext(r)
 
 	team := os.Getenv("TARGET_SLACK_TEAM")
