@@ -12,7 +12,6 @@ import (
 
 type PRReviewReminder struct {
 	UserToReviewUrls map[string][]string
-	SlackUsers       SlackUsers
 }
 
 func pullRequestReminder(ctx context.Context, team *SlackTeam) (*PRReviewReminder, error) {
