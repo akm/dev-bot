@@ -37,13 +37,11 @@ var PullRequestPattern = regexp.MustCompile(`/pr|pull request`)
 func subscribeSlack(w http.ResponseWriter, r *http.Request) {
 	ctx := appengine.NewContext(r)
 
-	accessToken, err := GetConfig(ctx, "SLACK_OAUTH_ACCESS_TOKEN")
+	slack_api, err := slackApi(ctx)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-
-	slack_api := slackApi(ctx, accessToken)
 
 	verificationToken, err := GetConfig(ctx, "SLACK_VERIFICATION_TOKEN")
 	if err != nil {

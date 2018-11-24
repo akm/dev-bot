@@ -11,10 +11,15 @@ import (
 )
 
 // https://github.com/nlopes/slack
-func slackApi(ctx context.Context, oauthAccessToken string) *slack.Client {
+func slackApi(ctx context.Context) (*slack.Client, error) {
+	oauthAccessToken, err := GetConfig(ctx, "SLACK_OAUTH_ACCESS_TOKEN")
+	if err != nil {
+		return nil, err
+	}
+
 	slack_api := slack.New(oauthAccessToken)
 	slack.OptionHTTPClient(urlfetch.Client(ctx))(slack_api)
-	return slack_api
+	return slack_api, nil
 }
 
 type SlackUser struct {
@@ -25,13 +30,10 @@ type SlackUser struct {
 type SlackUsers []*SlackUser
 
 func getSlackUsers(ctx context.Context) (SlackUsers, error) {
-	// https://github.com/nlopes/slack
-	accessToken, err := GetConfig(ctx, "SLACK_OAUTH_ACCESS_TOKEN")
+	slack_api, err := slackApi(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to get SLACK_OAUTH_ACCESS_TOKEN because of %v", err)
 	}
-
-	slack_api := slackApi(ctx, accessToken)
 
 	// Don't forget adding scopes at `OAuth & Permissions` page.
 	// See https://api.slack.com/methods/users.list about scopes.
