@@ -103,7 +103,7 @@ func replyToCallbackEvent(ctx context.Context, r *http.Request, eventsAPIEvent s
 		}
 		switch {
 		case PullRequestPattern.MatchString(ev.Text):
-			return replyToPRReviewReminderMentioned(ctx, r, eventsAPIEvent, os.Getenv("TARGET_SLACK_TEAM"))
+			return replyToPRReviewReminderMentioned(ctx, r, eventsAPIEvent)
 		default:
 			return fmt.Sprintf("<@%s> Sorry, I can't understand your message: %s", ev.User, ev.Text)
 		}
@@ -125,19 +125,20 @@ func reactToFavorites(ev *slackevents.MessageEvent) string {
 	return fmt.Sprintf("<@%s> Did you say %s !?", ev.User, strings.Join(favorites, " and "))
 }
 
-func replyToPRReviewReminderMentioned(ctx context.Context, r *http.Request, eventsAPIEvent slackevents.EventsAPIEvent, team string) string {
+func replyToPRReviewReminderMentioned(ctx context.Context, r *http.Request, eventsAPIEvent slackevents.EventsAPIEvent) string {
+	team, err := GetSlackTeam(ctx, eventsAPIEvent.TeamID)
+	if err != nil {
+		return fmt.Sprintf("No configuration found for %s because of %v", eventsAPIEvent.TeamID, err)
+	}
+
 	// https://api.slack.com/slash-commands#app_command_handling
-	if team == eventsAPIEvent.TeamID {
-		reminder, err := pullRequestReminder(ctx, r, team)
-		if err != nil {
-			return fmt.Sprintf("Failed to get the reminder of your pull requests because of %v", err)
-		} else {
-			b := bytes.NewBuffer([]byte{})
-			reminder.write(b)
-			return b.String()
-		}
+	reminder, err := pullRequestReminder(ctx, r, team.TeamID)
+	if err != nil {
+		return fmt.Sprintf("Failed to get the reminder of your pull requests because of %v", err)
 	} else {
-		return "Can't tell you the detail because you are in another team"
+		b := bytes.NewBuffer([]byte{})
+		reminder.write(b)
+		return b.String()
 	}
 }
 
@@ -183,16 +184,15 @@ func pullRequestReminder(ctx context.Context, r *http.Request, team string) (*PR
 func showPRReviewReminder(w http.ResponseWriter, r *http.Request) {
 	ctx := appengine.NewContext(r)
 
-	team := os.Getenv("TARGET_SLACK_TEAM")
-	// https://api.slack.com/slash-commands#app_command_handling
-	if team != r.PostFormValue("team_id") {
+	team, err := GetSlackTeam(ctx, r.PostFormValue("team_id"))
+	if err != nil {
 		err := fmt.Errorf("Invalid team ID")
 		log.Errorf(ctx, "Can't tell you the detail because of %v", err)
 		http.Error(w, err.Error(), http.StatusForbidden)
 		return
 	}
 
-	reminder, err := pullRequestReminder(ctx, r, team)
+	reminder, err := pullRequestReminder(ctx, r, team.TeamID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
