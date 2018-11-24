@@ -132,16 +132,16 @@ func replyToPRReviewReminderMentioned(ctx context.Context, r *http.Request, even
 	reminder, err := pullRequestReminder(ctx, team)
 	if err != nil {
 		return fmt.Sprintf("Failed to get the reminder of your pull requests because of %v", err)
-	} else {
-		slackUsers, err := getSlackUsers(ctx)
-		if err != nil {
-			return fmt.Sprintf("Failed to get slack users because of %v", err)
-		}
-
-		b := bytes.NewBuffer([]byte{})
-		reminder.write(b, slackUsers)
-		return b.String()
 	}
+
+	slackUsers, err := getSlackUsers(ctx)
+	if err != nil {
+		return fmt.Sprintf("Failed to get slack users because of %v", err)
+	}
+
+	b := bytes.NewBuffer([]byte{})
+	reminder.write(b, slackUsers)
+	return b.String()
 }
 
 func showPRReviewReminder(w http.ResponseWriter, r *http.Request) {
