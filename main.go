@@ -37,7 +37,19 @@ var PullRequestPattern = regexp.MustCompile(`/pr|pull request`)
 func subscribeSlack(w http.ResponseWriter, r *http.Request) {
 	ctx := appengine.NewContext(r)
 
-	slack_api := slackApi(ctx, os.Getenv("SLACK_OAUTH_ACCESS_TOKEN"))
+	accessToken, err := GetConfig(ctx, "SLACK_OAUTH_ACCESS_TOKEN")
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	slack_api := slackApi(ctx, accessToken)
+
+	verificationToken, err := GetConfig(ctx, "SLACK_VERIFICATION_TOKEN")
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 
 	// https://api.slack.com/events-api#subscriptions
 	// https://github.com/nlopes/slack
@@ -45,7 +57,7 @@ func subscribeSlack(w http.ResponseWriter, r *http.Request) {
 	buf := new(bytes.Buffer)
 	buf.ReadFrom(r.Body)
 	body := buf.String()
-	eventsAPIEvent, e := slackevents.ParseEvent(json.RawMessage(body), slackevents.OptionVerifyToken(&slackevents.TokenComparator{os.Getenv("SLACK_VERIFICATION_TOKEN")}))
+	eventsAPIEvent, e := slackevents.ParseEvent(json.RawMessage(body), slackevents.OptionVerifyToken(&slackevents.TokenComparator{verificationToken}))
 	if e != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 	}
@@ -56,7 +68,7 @@ func subscribeSlack(w http.ResponseWriter, r *http.Request) {
 	switch eventsAPIEvent.Type {
 	case slackevents.URLVerification:
 		ReplyToVerification(w, body)
-	case  slackevents.CallbackEvent:
+	case slackevents.CallbackEvent:
 		channel := ChannelFromInnerEvent(eventsAPIEvent.InnerEvent)
 		var msg string
 		botInfo, err := slack_api.GetBotInfo("")
@@ -105,7 +117,6 @@ func replyToCallbackEvent(ctx context.Context, r *http.Request, eventsAPIEvent s
 	}
 }
 
-
 func reactToFavorites(ev *slackevents.MessageEvent) string {
 	favorites := FavoritePattern.FindAllString(ev.Text, -1)
 	if len(favorites) < 1 {
@@ -131,8 +142,12 @@ func replyToPRReviewReminderMentioned(ctx context.Context, r *http.Request, even
 }
 
 func pullRequestReminder(ctx context.Context, r *http.Request, team string) (*PRReviewReminder, error) {
+	githubAuthToken, err := GetConfig(ctx, "GITHUB_AUTH_TOKEN")
+	if err != nil {
+		return nil, fmt.Errorf("Failed to get GITHUB_AUTH_TOKEN because of %v", err)
+	}
 	ts := oauth2.StaticTokenSource(
-		&oauth2.Token{AccessToken: os.Getenv("GITHUB_AUTH_TOKEN")},
+		&oauth2.Token{AccessToken: githubAuthToken},
 	)
 	tc := oauth2.NewClient(ctx, ts)
 	client := github.NewClient(tc)
@@ -144,7 +159,12 @@ func pullRequestReminder(ctx context.Context, r *http.Request, team string) (*PR
 	}
 
 	// https://github.com/nlopes/slack
-	slack_api := slackApi(ctx, os.Getenv("SLACK_OAUTH_ACCESS_TOKEN"))
+	accessToken, err := GetConfig(ctx, "SLACK_OAUTH_ACCESS_TOKEN")
+	if err != nil {
+		return nil, fmt.Errorf("Failed to get SLACK_OAUTH_ACCESS_TOKEN because of %v", err)
+	}
+
+	slack_api := slackApi(ctx, accessToken)
 	userNameToID, err := getUserNameToID(ctx, slack_api)
 	if err != nil {
 		return nil, err
@@ -152,7 +172,7 @@ func pullRequestReminder(ctx context.Context, r *http.Request, team string) (*PR
 
 	return &PRReviewReminder{
 		UserToReviewUrls: sum,
-		UserNameToID: userNameToID,
+		UserNameToID:     userNameToID,
 	}, nil
 }
 
