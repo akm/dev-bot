@@ -10,7 +10,7 @@ import (
 
 type Config struct {
 	_kind   string `goon:"kind,DevBotConfig"`
-	Name    string `datastore:"id"`
+	Name    string `datastore:"-" goon:"id"`
 	Value   string
 	Comment string
 }
