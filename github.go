@@ -8,16 +8,16 @@ import (
 	"github.com/google/go-github/github"
 )
 
-type GtihubRepo struct {
+type GithubRepo struct {
 	Org  string
 	Name string
 }
 
-func (repo *GtihubRepo) String() string {
+func (repo *GithubRepo) String() string {
 	return repo.Org + "/" + repo.Name
 }
 
-func (repo *GtihubRepo) getUserToReviewUrls(ctx context.Context, client *github.Client) (map[string][]string, error) {
+func (repo *GithubRepo) getUserToReviewUrls(ctx context.Context, client *github.Client) (map[string][]string, error) {
 	prs, _, err := client.PullRequests.List(ctx, repo.Org, repo.Name, nil)
 	if err != nil {
 		log.Errorf(ctx, "Failed to client.PullRequests.List for %s because of %v", repo.String(), err)

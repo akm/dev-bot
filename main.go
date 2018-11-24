@@ -153,7 +153,7 @@ func pullRequestReminder(ctx context.Context, r *http.Request, team string) (*PR
 	client := github.NewClient(tc)
 
 	// {"UserLogin": "PR URL"}
-	repo := &GtihubRepo{
+	repo := &GithubRepo{
 		Org:  os.Getenv("TARGET_GITHUB_ORG"),
 		Name: os.Getenv("TARGET_GITHUB_REPO"),
 	}
