@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 
 	"google.golang.org/appengine/log"
 	"google.golang.org/appengine/urlfetch"
@@ -16,7 +17,15 @@ func slackApi(ctx context.Context, oauthAccessToken string) *slack.Client {
 	return slack_api
 }
 
-func getUserNameToID(ctx context.Context, slack_api *slack.Client) (map[string]string, error) {
+func getUserNameToID(ctx context.Context) (map[string]string, error) {
+	// https://github.com/nlopes/slack
+	accessToken, err := GetConfig(ctx, "SLACK_OAUTH_ACCESS_TOKEN")
+	if err != nil {
+		return nil, fmt.Errorf("Failed to get SLACK_OAUTH_ACCESS_TOKEN because of %v", err)
+	}
+
+	slack_api := slackApi(ctx, accessToken)
+
 	// Don't forget adding scopes at `OAuth & Permissions` page.
 	// See https://api.slack.com/methods/users.list about scopes.
 	users, err := slack_api.GetUsers()

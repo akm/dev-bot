@@ -41,14 +41,7 @@ func pullRequestReminder(ctx context.Context, team *SlackTeam) (*PRReviewReminde
 		}
 	}
 
-	// https://github.com/nlopes/slack
-	accessToken, err := GetConfig(ctx, "SLACK_OAUTH_ACCESS_TOKEN")
-	if err != nil {
-		return nil, fmt.Errorf("Failed to get SLACK_OAUTH_ACCESS_TOKEN because of %v", err)
-	}
-
-	slack_api := slackApi(ctx, accessToken)
-	userNameToID, err := getUserNameToID(ctx, slack_api)
+	userNameToID, err := getUserNameToID(ctx)
 	if err != nil {
 		return nil, err
 	}
