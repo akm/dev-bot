@@ -10,11 +10,9 @@ import (
 	"github.com/google/go-github/github"
 )
 
-type PRReviewReminder struct {
-	UserToReviewUrls map[string][]string
-}
+type PRReviewReminder map[string][]string
 
-func pullRequestReminder(ctx context.Context, team *SlackTeam) (*PRReviewReminder, error) {
+func pullRequestReminder(ctx context.Context, team *SlackTeam) (PRReviewReminder, error) {
 	githubAuthToken, err := GetConfig(ctx, "GITHUB_AUTH_TOKEN")
 	if err != nil {
 		return nil, fmt.Errorf("Failed to get GITHUB_AUTH_TOKEN because of %v", err)
@@ -26,7 +24,7 @@ func pullRequestReminder(ctx context.Context, team *SlackTeam) (*PRReviewReminde
 	client := github.NewClient(tc)
 
 	// {"UserLogin": "PR URL"}
-	sum := map[string][]string{}
+	sum := PRReviewReminder{}
 	for _, repo := range team.Repositories {
 		userToURLs, err := repo.getUserToReviewUrls(ctx, client)
 		if err != nil {
@@ -40,14 +38,12 @@ func pullRequestReminder(ctx context.Context, team *SlackTeam) (*PRReviewReminde
 		}
 	}
 
-	return &PRReviewReminder{
-		UserToReviewUrls: sum,
-	}, nil
+	return sum, nil
 }
 
-func (prs *PRReviewReminder) write(w io.Writer, mentionDictionary Dictionary) {
+func (prs PRReviewReminder) write(w io.Writer, mentionDictionary Dictionary) {
 	fmt.Fprintf(w, "Pull Request Reminder\n")
-	for user, urls := range prs.UserToReviewUrls {
+	for user, urls := range prs {
 		fmt.Fprintf(w, "\n%s\n", mentionDictionary.LookUp(user))
 		for _, url := range urls {
 			fmt.Fprintf(w, "%s\n", url)
