@@ -17,7 +17,7 @@ func (repo *GtihubRepo) String() string {
 	return repo.Org + "/" + repo.Name
 }
 
-func getUserToReviewUrls(ctx context.Context, client *github.Client, repo *GtihubRepo) (map[string][]string, error) {
+func (repo *GtihubRepo) getUserToReviewUrls(ctx context.Context, client *github.Client) (map[string][]string, error) {
 	prs, _, err := client.PullRequests.List(ctx, repo.Org, repo.Name, nil)
 	if err != nil {
 		log.Errorf(ctx, "Failed to client.PullRequests.List for %s because of %v", repo.String(), err)
