@@ -55,7 +55,7 @@ func pullRequestReminder(ctx context.Context, team *SlackTeam) (*PRReviewReminde
 func (prs *PRReviewReminder) write(w io.Writer) {
 	fmt.Fprintf(w, "Pull Request Reminder\n")
 	for user, urls := range prs.UserToReviewUrls {
-		fmt.Fprintf(w, "\n%s\n", prs.SlackUsers.ToMention(user))
+		fmt.Fprintf(w, "\n%s\n", prs.SlackUsers.LookUp(user))
 		for _, url := range urls {
 			fmt.Fprintf(w, "%s\n", url)
 		}

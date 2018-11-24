@@ -70,7 +70,7 @@ func (users SlackUsers) MaxNameLength() int {
 	return r
 }
 
-func (users SlackUsers) ToMention(name string) string {
+func (users SlackUsers) LookUp(name string) string {
 	// https://api.slack.com/docs/message-formatting#linking_to_channels_and_users
 	maxLen := users.MaxNameLength()
 	for i := 0; i < maxLen; i++ {
