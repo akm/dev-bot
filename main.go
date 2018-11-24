@@ -17,9 +17,12 @@ import (
 )
 
 func main() {
+	// for Slack Commands
 	http.HandleFunc("/hello", sayHello)
-	http.HandleFunc("/slack/subscribe", subscribeSlack)
 	http.HandleFunc("/github/pull_requests", showPRReviewReminder)
+
+	// for Slack Events API
+	http.HandleFunc("/slack/subscribe", subscribeSlack)
 
 	appengine.Main()
 }
