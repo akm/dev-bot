@@ -1,6 +1,6 @@
 package main
 
-import(
+import (
 	"context"
 
 	"google.golang.org/appengine/log"
@@ -8,11 +8,19 @@ import(
 	"github.com/google/go-github/github"
 )
 
+type GithubRepo struct {
+	Org  string
+	Name string
+}
 
-func getUserToReviewUrls(ctx context.Context, client *github.Client, owner, repo string) (map[string][]string, error) {
-	prs, _, err := client.PullRequests.List(ctx, owner, repo, nil)
+func (repo *GithubRepo) String() string {
+	return repo.Org + "/" + repo.Name
+}
+
+func (repo *GithubRepo) getUserToReviewUrls(ctx context.Context, client *github.Client) (map[string][]string, error) {
+	prs, _, err := client.PullRequests.List(ctx, repo.Org, repo.Name, nil)
 	if err != nil {
-		log.Errorf(ctx, "Failed to client.PullRequests.List because of %v", err)
+		log.Errorf(ctx, "Failed to client.PullRequests.List for %s because of %v", repo.String(), err)
 		return nil, err
 	}
 

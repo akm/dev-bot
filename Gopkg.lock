@@ -34,6 +34,14 @@
   version = "v1.4.0"
 
 [[projects]]
+  branch = "master"
+  digest = "1:e97a6f4c77f71471b34dbc72bf9ffe4f87d083993afebd8e71e758a60b6104ff"
+  name = "github.com/mjibson/goon"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "0c01b4bc4f4970fa6f91409bf7f134a10809219c"
+
+[[projects]]
   digest = "1:0d01bcdbda5760553e5ab803faa3d3a0dc6a3ef357eb179b8ac8501b358d49ce"
   name = "github.com/nlopes/slack"
   packages = [
@@ -76,19 +84,22 @@
   revision = "f42d05182288abf10faef86d16c0d07b8d40ea2d"
 
 [[projects]]
-  digest = "1:ff1d099eaac616cfb0eb941e5a6b5371880130dcd50cd449b5c1a6522a1b1c41"
+  digest = "1:48dfd361b4905fc4274c10f8d2ad8f14bf41f79b98575ed32a671f1dbbbeb73c"
   name = "google.golang.org/appengine"
   packages = [
     ".",
+    "datastore",
     "internal",
     "internal/app_identity",
     "internal/base",
     "internal/datastore",
     "internal/log",
+    "internal/memcache",
     "internal/modules",
     "internal/remote_api",
     "internal/urlfetch",
     "log",
+    "memcache",
     "urlfetch",
   ]
   pruneopts = "UT"
@@ -100,6 +111,7 @@
   analyzer-version = 1
   input-imports = [
     "github.com/google/go-github/github",
+    "github.com/mjibson/goon",
     "github.com/nlopes/slack",
     "github.com/nlopes/slack/slackevents",
     "golang.org/x/oauth2",
