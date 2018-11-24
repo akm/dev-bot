@@ -17,7 +17,14 @@ func slackApi(ctx context.Context, oauthAccessToken string) *slack.Client {
 	return slack_api
 }
 
-func getUserNameToID(ctx context.Context) (map[string]string, error) {
+type SlackUser struct {
+	ID    string
+	Names []string
+}
+
+type SlackUsers []*SlackUser
+
+func getSlackUsers(ctx context.Context) (SlackUsers, error) {
 	// https://github.com/nlopes/slack
 	accessToken, err := GetConfig(ctx, "SLACK_OAUTH_ACCESS_TOKEN")
 	if err != nil {
@@ -34,11 +41,39 @@ func getUserNameToID(ctx context.Context) (map[string]string, error) {
 		return nil, err
 	}
 
-	userNameToID := map[string]string{}
+	r := SlackUsers{}
 	for _, user := range users {
 		log.Debugf(ctx, "user: %v\n", user)
-		userNameToID[user.Profile.DisplayName] = user.ID
+		r = append(r, &SlackUser{
+			ID: user.ID,
+			Names: []string{
+				user.Profile.DisplayName,
+			},
+		})
 	}
+	return r, nil
+}
 
-	return userNameToID, nil
+func (users SlackUsers) MaxNameLength() int {
+	r := 0
+	for _, user := range users {
+		l := len(user.Names)
+		if r < l {
+			r = l
+		}
+	}
+	return r
+}
+
+func (users SlackUsers) ToMention(name string) string {
+	// https://api.slack.com/docs/message-formatting#linking_to_channels_and_users
+	maxLen := users.MaxNameLength()
+	for i := 0; i < maxLen; i++ {
+		for _, user := range users {
+			if i < len(user.Names) && user.Names[i] == name {
+				return fmt.Sprintf("<@%s>", user.ID)
+			}
+		}
+	}
+	return fmt.Sprintf("@%s", name)
 }

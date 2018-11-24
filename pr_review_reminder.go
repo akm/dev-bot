@@ -12,7 +12,7 @@ import (
 
 type PRReviewReminder struct {
 	UserToReviewUrls map[string][]string
-	UserNameToID     map[string]string
+	SlackUsers       SlackUsers
 }
 
 func pullRequestReminder(ctx context.Context, team *SlackTeam) (*PRReviewReminder, error) {
@@ -41,29 +41,21 @@ func pullRequestReminder(ctx context.Context, team *SlackTeam) (*PRReviewReminde
 		}
 	}
 
-	userNameToID, err := getUserNameToID(ctx)
+	slackUsers, err := getSlackUsers(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	return &PRReviewReminder{
 		UserToReviewUrls: sum,
-		UserNameToID:     userNameToID,
+		SlackUsers:       slackUsers,
 	}, nil
 }
 
 func (prs *PRReviewReminder) write(w io.Writer) {
 	fmt.Fprintf(w, "Pull Request Reminder\n")
 	for user, urls := range prs.UserToReviewUrls {
-		// https://api.slack.com/docs/message-formatting#linking_to_channels_and_users
-		userId := prs.UserNameToID[user]
-		var mention string
-		if userId == "" {
-			mention = fmt.Sprintf("@%s", user)
-		} else {
-			mention = fmt.Sprintf("<@%s>", userId)
-		}
-		fmt.Fprintf(w, "\n%s\n", mention)
+		fmt.Fprintf(w, "\n%s\n", prs.SlackUsers.ToMention(user))
 		for _, url := range urls {
 			fmt.Fprintf(w, "%s\n", url)
 		}
