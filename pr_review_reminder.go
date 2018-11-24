@@ -1,13 +1,62 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io"
+
+	"golang.org/x/oauth2"
+
+	"github.com/google/go-github/github"
 )
 
 type PRReviewReminder struct {
 	UserToReviewUrls map[string][]string
-	UserNameToID map[string]string
+	UserNameToID     map[string]string
+}
+
+func pullRequestReminder(ctx context.Context, team *SlackTeam) (*PRReviewReminder, error) {
+	githubAuthToken, err := GetConfig(ctx, "GITHUB_AUTH_TOKEN")
+	if err != nil {
+		return nil, fmt.Errorf("Failed to get GITHUB_AUTH_TOKEN because of %v", err)
+	}
+	ts := oauth2.StaticTokenSource(
+		&oauth2.Token{AccessToken: githubAuthToken},
+	)
+	tc := oauth2.NewClient(ctx, ts)
+	client := github.NewClient(tc)
+
+	// {"UserLogin": "PR URL"}
+	sum := map[string][]string{}
+	for _, repo := range team.Repositories {
+		userToURLs, err := repo.getUserToReviewUrls(ctx, client)
+		if err != nil {
+			return nil, err
+		}
+		for user, urls := range userToURLs {
+			if sum[user] == nil {
+				sum[user] = []string{}
+			}
+			sum[user] = append(sum[user], urls...)
+		}
+	}
+
+	// https://github.com/nlopes/slack
+	accessToken, err := GetConfig(ctx, "SLACK_OAUTH_ACCESS_TOKEN")
+	if err != nil {
+		return nil, fmt.Errorf("Failed to get SLACK_OAUTH_ACCESS_TOKEN because of %v", err)
+	}
+
+	slack_api := slackApi(ctx, accessToken)
+	userNameToID, err := getUserNameToID(ctx, slack_api)
+	if err != nil {
+		return nil, err
+	}
+
+	return &PRReviewReminder{
+		UserToReviewUrls: sum,
+		UserNameToID:     userNameToID,
+	}, nil
 }
 
 func (prs *PRReviewReminder) write(w io.Writer) {
