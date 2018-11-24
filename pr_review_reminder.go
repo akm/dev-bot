@@ -41,21 +41,15 @@ func pullRequestReminder(ctx context.Context, team *SlackTeam) (*PRReviewReminde
 		}
 	}
 
-	slackUsers, err := getSlackUsers(ctx)
-	if err != nil {
-		return nil, err
-	}
-
 	return &PRReviewReminder{
 		UserToReviewUrls: sum,
-		SlackUsers:       slackUsers,
 	}, nil
 }
 
-func (prs *PRReviewReminder) write(w io.Writer) {
+func (prs *PRReviewReminder) write(w io.Writer, mentionDictionary Dictionary) {
 	fmt.Fprintf(w, "Pull Request Reminder\n")
 	for user, urls := range prs.UserToReviewUrls {
-		fmt.Fprintf(w, "\n%s\n", prs.SlackUsers.LookUp(user))
+		fmt.Fprintf(w, "\n%s\n", mentionDictionary.LookUp(user))
 		for _, url := range urls {
 			fmt.Fprintf(w, "%s\n", url)
 		}
