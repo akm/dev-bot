@@ -8,11 +8,18 @@ import (
 	"github.com/mjibson/goon"
 )
 
+type SlackUserMapEntry struct {
+	GithubName string
+	SlackName  string
+}
+
 type SlackTeam struct {
-	_kind        string `goon:"kind,DevBotSlackTeam"`
-	TeamID       string `datastore:"-" goon:"id"`
-	Comment      string
-	Repositories []GithubRepo
+	_kind         string `goon:"kind,DevBotSlackTeam"`
+	TeamID        string `datastore:"-" goon:"id"`
+	Comment       string
+	Repositories  []GithubRepo
+	UserMap       []SlackUserMapEntry
+	GithubToSlack map[string]string `datastore:"-"`
 }
 
 func GetSlackTeam(ctx context.Context, teamID string) (*SlackTeam, error) {
@@ -30,5 +37,10 @@ func FindSlackTeam(ctx context.Context, teamID string) (*SlackTeam, error) {
 	if err := g.Get(c); err != nil {
 		return nil, err
 	}
+	m := map[string]string{}
+	for _, ua := range c.UserMap {
+		m[ua.GithubName] = ua.SlackName
+	}
+	c.GithubToSlack = m
 	return c, nil
 }

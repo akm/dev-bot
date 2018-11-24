@@ -30,7 +30,11 @@ func NewPRReviewReminder(ctx context.Context, team *SlackTeam) (PRReviewReminder
 		if err != nil {
 			return nil, err
 		}
-		for user, urls := range userToURLs {
+		for origUser, urls := range userToURLs {
+			user := team.GithubToSlack[origUser]
+			if user == "" {
+				user = origUser
+			}
 			if sum[user] == nil {
 				sum[user] = []string{}
 			}
