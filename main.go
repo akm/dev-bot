@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"os"
 	"regexp"
 	"strings"
 
@@ -132,7 +131,7 @@ func replyToPRReviewReminderMentioned(ctx context.Context, r *http.Request, even
 	}
 
 	// https://api.slack.com/slash-commands#app_command_handling
-	reminder, err := pullRequestReminder(ctx, r, team.TeamID)
+	reminder, err := pullRequestReminder(ctx, r, team)
 	if err != nil {
 		return fmt.Sprintf("Failed to get the reminder of your pull requests because of %v", err)
 	} else {
@@ -142,7 +141,7 @@ func replyToPRReviewReminderMentioned(ctx context.Context, r *http.Request, even
 	}
 }
 
-func pullRequestReminder(ctx context.Context, r *http.Request, team string) (*PRReviewReminder, error) {
+func pullRequestReminder(ctx context.Context, r *http.Request, team *SlackTeam) (*PRReviewReminder, error) {
 	githubAuthToken, err := GetConfig(ctx, "GITHUB_AUTH_TOKEN")
 	if err != nil {
 		return nil, fmt.Errorf("Failed to get GITHUB_AUTH_TOKEN because of %v", err)
@@ -154,13 +153,18 @@ func pullRequestReminder(ctx context.Context, r *http.Request, team string) (*PR
 	client := github.NewClient(tc)
 
 	// {"UserLogin": "PR URL"}
-	repo := &GithubRepo{
-		Org:  os.Getenv("TARGET_GITHUB_ORG"),
-		Name: os.Getenv("TARGET_GITHUB_REPO"),
-	}
-	sum, err := repo.getUserToReviewUrls(ctx, client)
-	if err != nil {
-		return nil, err
+	sum := map[string][]string{}
+	for _, repo := range team.Repositories {
+		userToURLs, err := repo.getUserToReviewUrls(ctx, client)
+		if err != nil {
+			return nil, err
+		}
+		for user, urls := range userToURLs {
+			if sum[user] == nil {
+				sum[user] = []string{}
+			}
+			sum[user] = append(sum[user], urls...)
+		}
 	}
 
 	// https://github.com/nlopes/slack
@@ -192,7 +196,7 @@ func showPRReviewReminder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	reminder, err := pullRequestReminder(ctx, r, team.TeamID)
+	reminder, err := pullRequestReminder(ctx, r, team)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
