@@ -130,7 +130,7 @@ func replyToPRReviewReminderMentioned(ctx context.Context, r *http.Request, even
 	}
 
 	// https://api.slack.com/slash-commands#app_command_handling
-	reminder, err := pullRequestReminder(ctx, team)
+	reminder, err := NewPRReviewReminder(ctx, team)
 	if err != nil {
 		return fmt.Sprintf("Failed to get the reminder of your pull requests because of %v", err)
 	}
@@ -156,7 +156,7 @@ func showPRReviewReminder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	reminder, err := pullRequestReminder(ctx, team)
+	reminder, err := NewPRReviewReminder(ctx, team)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

@@ -12,7 +12,7 @@ import (
 
 type PRReviewReminder map[string][]string
 
-func pullRequestReminder(ctx context.Context, team *SlackTeam) (PRReviewReminder, error) {
+func NewPRReviewReminder(ctx context.Context, team *SlackTeam) (PRReviewReminder, error) {
 	githubAuthToken, err := GetConfig(ctx, "GITHUB_AUTH_TOKEN")
 	if err != nil {
 		return nil, fmt.Errorf("Failed to get GITHUB_AUTH_TOKEN because of %v", err)
